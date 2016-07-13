@@ -1,5 +1,5 @@
 module LuceneQueryParser
-  class Parser < Parslet::Parser
+  class Parser2 < Parslet::Parser
 
     # Public: find and explain errors in a query, if any
     #
@@ -42,23 +42,30 @@ module LuceneQueryParser
 
     root :expr
 
-    rule :expr do
-      space.maybe >>
-      operand >> (space >> (operator >> space >> operand | operand)).repeat >>
-      space.maybe
-    end
+    rule(:expr) {
+      space? >> clause.repeat >> space?
+    }
+
+    rule(:clause) {
+      unary_operator.as(:unary_operator).maybe >> operand >> space?
+    }
+
+    # rule :expr do
+    #   space.maybe >>
+    #   operand >> (space >> (operator >> space >> operand | operand)).repeat >>
+    #   space.maybe
+    # end
+
+    # rule :operator do
+    #   str('AND').as(:op) | str('OR').as(:op)
+    # end
 
     rule :operator do
-      str('AND').as(:op) | str('OR').as(:op)
+      (str('AND') | str('OR') | str('NOT')).as(:operator)
     end
 
     rule :operand do
-      unary_operator.maybe >> (
-        group |
-        field |
-        term |
-        phrase
-      )
+      ( group | field | term | phrase ).as(:operand)
     end
 
     rule :escape_special_words do
@@ -81,7 +88,7 @@ module LuceneQueryParser
     rule :field do
       match["\\w\\."].repeat(1).as(:field) >> str(':') >> space.maybe >>
       (
-        term | phrase | group |
+        operand |
         inclusive_range.as(:inclusive_range) |
         exclusive_range.as(:exclusive_range)
       )
@@ -99,10 +106,14 @@ module LuceneQueryParser
       (range_word | range_wildcard).as(:to) >> space.maybe >> str('}')
     end
 
+    # rule :unary_operator do
+    #   str('+').as(:required) |
+    #   str('-').as(:prohibited) |
+    #   (str('NOT').as(:op) >> space)
+    # end
+
     rule :unary_operator do
-      str('+').as(:required) |
-      str('-').as(:prohibited) |
-      (str('NOT').as(:op) >> space)
+      str('+').as(:required) | str('-').as(:prohibited)
     end
 
     rule :fuzzy do
@@ -132,6 +143,10 @@ module LuceneQueryParser
     rule :space do
       match["\n \t"].repeat(1)
     end
+
+    rule(:space?) {
+      space.maybe
+    }
 
   end
 end

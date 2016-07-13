@@ -151,6 +151,12 @@ describe LuceneQueryParser::Parser do
       )
     end
 
+    it "parses field: value" do
+      should parse("title: foo").as(
+        {:field => "title", :term => "foo"}
+      )
+    end
+
     it "parses fuzzy terms" do
       should parse('fuzzy~').as(
         {:term => "fuzzy", :similarity => nil}
